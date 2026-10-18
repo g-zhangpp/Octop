@@ -62,12 +62,38 @@ async def client(tmp_path: Path):
     await srv.stop()
 
 
-async def test_middleware_blocks_unauthenticated_api(client) -> None:
-    c, _srv, home = client
+@pytest.mark.parametrize("credentials", ["missing", "invalid", "expired"])
+@pytest.mark.parametrize(
+    ("accept_language", "auth_message", "expired_message"),
+    [
+        ("zh-CN,en;q=0.9", "认证失败。", "登录已过期，请重新登录。"),
+        ("en-US,zh;q=0.9", "Authentication failed.", "Session expired. Please sign in again."),
+        (None, "认证失败。", "登录已过期，请重新登录。"),
+    ],
+)
+async def test_middleware_localizes_authentication_errors(
+    client, credentials, accept_language, auth_message, expired_message
+) -> None:
+    c, srv, home = client
     await bootstrap_admin(c, home)
-    r = await c.get("/api/agents")
+    headers = {"Accept-Language": accept_language} if accept_language else {}
+    if credentials == "invalid":
+        headers.update(bearer("not-a-valid-token"))
+    elif credentials == "expired":
+        assert srv.services is not None
+        secret = srv.services.secret_repo.get("jwt")
+        assert secret is not None
+        token = sign_token(secret, sub=1, uname="admin", role="admin", ttl_seconds=-1)
+        headers.update(bearer(token))
+    r = await c.get("/api/agents", headers=headers)
     assert r.status_code == 401
-    assert r.json()["error"]["code"] == "AUTH_FAILED"
+    assert r.json() == {
+        "error": {
+            "code": "TOKEN_EXPIRED" if credentials == "expired" else "AUTH_FAILED",
+            "message": expired_message if credentials == "expired" else auth_message,
+            "details": {},
+        }
+    }
 
 
 async def test_middleware_allows_login_without_token(client) -> None:
