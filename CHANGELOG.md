@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### 修复
+- OpenSandbox 存储后端缺 `mkdir_path` / `delete_path` / `move_path` 三个工作区原语，非挂载启动专家直接失败；Octop 兼容层已补齐（Fixes #1813）
 - 中文 Windows 上用 grep 搜到非 GBK 字节时不再把整个回合打成「模型调用失败」：ripgrep 的输出按 UTF-8 解码（#1959）
 - 中文 Windows 上执行命令时，UTF-8 输出不再被收成空结果；按 UTF-8、系统编码、GBK 依次解码（#1959）
 - 知识库预览旧版 Word（.doc）改为抽取文本；工作区、对话、技能和存储浏览改为下载，不再交给 docx 渲染器（#2155）
