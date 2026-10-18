@@ -5,6 +5,7 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [语义化版本规范](https://semver.org/spec/v2.0.0.html)。
 
 ## [Unreleased]
+- 图片附件的 MIME 为空或 `application/octet-stream` 时，根据内容嗅探真实图片类型；覆盖内嵌图片、URL 下载及发送模型前的工作区图片引用物化，已有引用无需修改 checkpoint
 
 ### 新增
 - 定时任务支持一次性执行：到点跑完（含失败）后自动停用并留在列表中；停机超过 24 小时未跑到则记为错过
