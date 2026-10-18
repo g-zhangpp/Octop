@@ -13,11 +13,18 @@ from typing import Any, Literal
 
 import httpx
 
-ErrorType = Literal["auth_error", "timeout", "network_error", "invalid_config", "unknown"]
+ErrorType = Literal[
+    "auth_error",
+    "rate_limited",
+    "timeout",
+    "network_error",
+    "invalid_config",
+    "unknown",
+]
 
 _TIMEOUT_S = 30.0
 _TEST_QUERY = "octop connectivity probe"
-_KNOWN: frozenset[str] = frozenset({"tavily", "brave", "google", "kimi"})
+_KNOWN: frozenset[str] = frozenset({"tavily", "brave", "google", "kimi", "deepseek"})
 _REQUIRED: dict[str, tuple[str, ...]] = {
     "tavily": ("TAVILY_API_KEY",),
     "brave": ("BRAVE_API_KEY",),
@@ -40,7 +47,7 @@ async def probe_search_provider(
             _probe(provider_id, env_vars),
             timeout=_TIMEOUT_S,
         )
-    except TimeoutError:
+    except (TimeoutError, httpx.TimeoutException):
         outcome = {
             "success": False,
             "error": f"probe timed out after {_TIMEOUT_S:.0f}s",
@@ -63,6 +70,9 @@ async def _probe(provider_id: str, env_vars: Mapping[str, str]) -> dict[str, Any
             "error": f"Unknown search provider: {provider_id}",
             "error_type": "invalid_config",
         }
+
+    if provider_id == "deepseek":
+        return await _deepseek(env_vars)
 
     missing = [k for k in _REQUIRED[provider_id] if not str(env_vars.get(k, "")).strip()]
     if missing:
@@ -90,6 +100,50 @@ async def _tavily(client: httpx.AsyncClient, api_key: str) -> dict[str, Any]:
         json={"query": _TEST_QUERY, "max_results": 1, "search_depth": "basic"},
     )
     return _from_response(response, provider="Tavily", results_key="results")
+
+
+def _deepseek_search_url(raw_base_url: str) -> str:
+    """``{base}/v1/tools/search`` (``…/v1`` accepted for convenience)."""
+    base = (raw_base_url or "").strip().rstrip("/") or "https://api.deepseek.com"
+    if base.endswith("/v1"):
+        return f"{base}/tools/search"
+    return f"{base}/v1/tools/search"
+
+
+async def _deepseek(env_vars: Mapping[str, str]) -> dict[str, Any]:
+    # Explicit search-only key wins; otherwise reuse the conventional key.
+    api_key = str(env_vars.get("DEEPSEEK_SEARCH_API_KEY") or "").strip()
+    if not api_key:
+        api_key = str(env_vars.get("DEEPSEEK_API_KEY") or "").strip()
+    if not api_key:
+        return {
+            "success": False,
+            "error": "missing DEEPSEEK_API_KEY (or DEEPSEEK_SEARCH_API_KEY)",
+            "error_type": "invalid_config",
+        }
+    url = _deepseek_search_url(str(env_vars.get("DEEPSEEK_SEARCH_BASE_URL") or ""))
+    headers = {"Authorization": f"Bearer {api_key}"}
+    payload = {"query": _TEST_QUERY, "count": 1}
+    response: httpx.Response | None = None
+    # One retry smooths over a transient 429/5xx during a manual "test connection".
+    for attempt in range(2):
+        async with httpx.AsyncClient(timeout=_TIMEOUT_S) as client:
+            response = await client.post(url, headers=headers, json=payload)
+        if response.status_code not in {429, 500, 502, 503, 504} or attempt == 1:
+            break
+        await asyncio.sleep(_probe_retry_delay(response))
+    assert response is not None
+    return _from_response(response, provider="DeepSeek", results_key="results")
+
+
+def _probe_retry_delay(response: httpx.Response) -> float:
+    raw = (response.headers.get("retry-after") or "").strip()
+    if raw:
+        try:
+            return max(0.0, min(float(raw), 1.5))
+        except ValueError:
+            pass
+    return 0.5
 
 
 async def _brave(client: httpx.AsyncClient, api_key: str) -> dict[str, Any]:
@@ -215,7 +269,7 @@ def _http_failure(response: httpx.Response) -> dict[str, Any] | None:
     if response.status_code in {401, 403}:
         error_type: ErrorType = "auth_error"
     elif response.status_code == 429:
-        error_type = "auth_error"
+        error_type = "rate_limited"
     else:
         error_type = "network_error" if response.status_code >= 500 else "unknown"
     return {"success": False, "error": error, "error_type": error_type}

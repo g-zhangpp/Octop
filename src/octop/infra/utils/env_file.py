@@ -28,6 +28,13 @@ SEARCH_ENV_KEYS = frozenset(
         "GOOGLE_API_KEY",
         "GOOGLE_CSE_ID",
         "MOONSHOT_API_KEY",
+        # DeepSeek Search / Fetch (built-in provider; see infra/websearch).
+        "DEEPSEEK_SEARCH_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "DEEPSEEK_SEARCH_BASE_URL",
+        "DEEPSEEK_SEARCH_COUNT",
+        "DEEPSEEK_SEARCH_NEED_CONTENT",
+        "DEEPSEEK_SEARCH_LOCALIZATION",
     }
 )
 
