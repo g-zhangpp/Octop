@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### 新增
+- Agent API 响应新增 `reload_pending` 字段：`PATCH /api/agents/{id}` 落库后、后台 harness 重建完成前为 `true`，调用方可据此等待或展示「重载中」状态（Fixes octop-harness#19）。
+
 ### 修复
 - 知识库预览旧版 Word（.doc）改为抽取文本；工作区、对话、技能和存储浏览改为下载，不再交给 docx 渲染器（#2155）
 - 知识库上传进度只显示在正在接收文件的那个知识库
