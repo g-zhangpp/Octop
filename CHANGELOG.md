@@ -5,6 +5,7 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [语义化版本规范](https://semver.org/spec/v2.0.0.html)。
 
 ## [Unreleased]
+- 工作区在线编辑 DOCX 时，行内超链接文字保持原段落顺序，打开或保存文档时不再被移到段尾
 
 ### 修复
 - 知识库预览旧版 Word（.doc）改为抽取文本；工作区、对话、技能和存储浏览改为下载，不再交给 docx 渲染器（#2155）
