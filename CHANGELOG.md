@@ -5,6 +5,7 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [语义化版本规范](https://semver.org/spec/v2.0.0.html)。
 
 ## [Unreleased]
+- Linux 桌面客户端无边框窗口支持拖拽边缘与角落调整大小。
 
 ### 新增
 - 定时任务支持一次性执行：到点跑完（含失败）后自动停用并留在列表中；停机超过 24 小时未跑到则记为错过
