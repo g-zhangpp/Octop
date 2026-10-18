@@ -10,6 +10,8 @@
 - 知识库预览旧版 Word（.doc）改为抽取文本；工作区、对话、技能和存储浏览改为下载，不再交给 docx 渲染器（#2155）
 - 知识库上传进度只显示在正在接收文件的那个知识库
 ### 新增
+- 内置 DeepSeek 搜索提供商：在「模型 → 搜索引擎」配置 API Key、Base URL、返回条数、need_content 和本地化，并支持一键复用 DeepSeek 模型提供商的 Key
+- Agent 新增可独立开关的 `web_search` / `web_fetch` 工具（DeepSeek Search / Fetch API，保留 rerank_score 与 authority 用于排序和引用），配置后替代内置网页抓取
 - 定时任务支持一次性执行：到点跑完（含失败）后自动停用并留在列表中；停机超过 24 小时未跑到则记为错过
 - 个性化页的技能、子智能体、工具、插件、MBTI、记忆可以按权限单独开关
 

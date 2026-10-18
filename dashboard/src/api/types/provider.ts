@@ -179,5 +179,13 @@ export interface TestSearchResponse {
   result_count?: number;
   message?: string;
   error?: string;
-  error_type?: string; // "auth_error" | "timeout" | "network_error" | "invalid_config" | "unknown"
+  error_type?: string; // "auth_error" | "rate_limited" | "timeout" | "network_error" | "invalid_config" | "unknown"
+}
+
+/** Result of reusing the DeepSeek chat-model provider key for web search. */
+export interface ImportModelKeyResponse {
+  ok: boolean;
+  provider_name?: string;
+  env_key?: string;
+  error?: string;
 }
