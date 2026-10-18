@@ -43,6 +43,7 @@ import {
   FileUp,
   Folder,
   FolderPlus,
+  FolderUp,
   LayoutGrid,
   List as ListIcon,
   ListTree,
@@ -107,8 +108,10 @@ import { KNOWLEDGE_ICON_NAMES, knowledgeIconForName } from "./knowledgeIcons";
 import {
   isDirectKnowledgeChild,
   joinKnowledgePath,
+  joinKnowledgeRelativePath,
   knowledgeBasename,
   knowledgeBreadcrumb,
+  normalizeKnowledgePath,
   shouldOpenKnowledgeFolder,
 } from "./knowledgeFolder";
 import { resolveKnowledgeDeepLink } from "./knowledgeDeepLink";
@@ -674,6 +677,7 @@ export default function KnowledgeBasesPage() {
   } | null>(null);
   const uploadInFlightRef = useRef(false);
   const uploadRef = useRef<HTMLInputElement>(null);
+  const folderUploadRef = useRef<HTMLInputElement>(null);
   const dragDepthRef = useRef(0);
   const [dragActive, setDragActive] = useState(false);
   const detailRequestGate = useRef(createDetailRequestGate());
@@ -1306,8 +1310,15 @@ export default function KnowledgeBasesPage() {
   };
 
   const uploadDocuments = async (files: FileList | File[] | null) => {
-    if (!selected || !files || !usable || isAtDocumentLimit) return;
-    if (uploadInFlightRef.current) return;
+    if (
+      !selected ||
+      !files ||
+      !canWriteSelected ||
+      !usable ||
+      isAtDocumentLimit ||
+      uploadInFlightRef.current
+    )
+      return;
     const baseId = selected.id;
     const remaining =
       documentCap === null
@@ -1341,15 +1352,21 @@ export default function KnowledgeBasesPage() {
           sizeMb: Math.round(limits.max_document_bytes / (1024 * 1024)),
         }),
       );
-      if (uploadRef.current) uploadRef.current.value = "";
       return;
     }
     uploadInFlightRef.current = true;
     try {
       for (const [index, file] of chosen.entries()) {
+        const relativePath = normalizeKnowledgePath(
+          file.webkitRelativePath || file.name,
+        );
+        const targetPath = joinKnowledgeRelativePath(
+          currentFolder,
+          relativePath,
+        );
         setUploadState({
           baseId,
-          filename: file.name,
+          filename: relativePath,
           index: index + 1,
           total: chosen.length,
           percent: 0,
@@ -1357,12 +1374,12 @@ export default function KnowledgeBasesPage() {
         await knowledgeBasesApi.uploadDocument(
           baseId,
           file,
-          joinKnowledgePath(currentFolder, file.name),
+          targetPath,
           (percent) =>
             setUploadState((current) =>
               current &&
               current.baseId === baseId &&
-              current.filename === file.name
+              current.filename === relativePath
                 ? { ...current, percent }
                 : current,
             ),
@@ -1374,21 +1391,27 @@ export default function KnowledgeBasesPage() {
           void loadDetail(baseId, { silent: true });
         }
       }
-      if (selectedIdRef.current === baseId) {
-        await loadDetail(baseId);
-      }
-      await loadBases();
       message.success(t("knowledgeBases.uploaded"));
     } catch (error) {
       message.error(
         apiErrorMessage(error, t("knowledgeBases.uploadFailed"), t),
       );
     } finally {
-      uploadInFlightRef.current = false;
-      setUploadState((current) =>
-        current?.baseId === baseId ? null : current,
-      );
-      if (uploadRef.current) uploadRef.current.value = "";
+      try {
+        // Refresh the open base only. loadDetail on the upload target would
+        // replace a knowledge base the user switched to while files were sending.
+        if (selectedIdRef.current === baseId) {
+          await loadDetail(baseId, { silent: true });
+        }
+        await loadBases();
+      } finally {
+        uploadInFlightRef.current = false;
+        setUploadState((current) =>
+          current?.baseId === baseId ? null : current,
+        );
+        if (uploadRef.current) uploadRef.current.value = "";
+        if (folderUploadRef.current) folderUploadRef.current.value = "";
+      }
     }
   };
 
@@ -2276,9 +2299,30 @@ export default function KnowledgeBasesPage() {
                           type="file"
                           multiple
                           accept={supportedDocumentTypes}
-                          onChange={(event) =>
-                            void uploadDocuments(event.target.files)
-                          }
+                          disabled={!canDropUpload}
+                          onChange={(event) => {
+                            const files = Array.from(
+                              event.currentTarget.files ?? [],
+                            );
+                            event.currentTarget.value = "";
+                            void uploadDocuments(files);
+                          }}
+                        />
+                        <input
+                          ref={folderUploadRef}
+                          className={styles.fileInput}
+                          type="file"
+                          multiple
+                          {...{ webkitdirectory: "" }}
+                          aria-label={t("knowledgeBases.uploadFolder")}
+                          disabled={!canDropUpload}
+                          onChange={(event) => {
+                            const files = Array.from(
+                              event.currentTarget.files ?? [],
+                            );
+                            event.currentTarget.value = "";
+                            void uploadDocuments(files);
+                          }}
                         />
                         {canWriteSelected ? (
                           <Button
@@ -2299,6 +2343,17 @@ export default function KnowledgeBasesPage() {
                           >
                             {t("knowledgeBases.createFile")}
                           </Button>
+                        ) : null}
+                        {canWriteSelected ? (
+                          <Tooltip title={t("knowledgeBases.uploadFolderHint")}>
+                            <Button
+                              icon={<FolderUp size={14} />}
+                              disabled={!canDropUpload}
+                              onClick={() => folderUploadRef.current?.click()}
+                            >
+                              {t("knowledgeBases.uploadFolder")}
+                            </Button>
+                          </Tooltip>
                         ) : null}
                         {canWriteSelected ? (
                           <Button
