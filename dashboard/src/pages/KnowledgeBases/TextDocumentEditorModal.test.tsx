@@ -98,4 +98,38 @@ describe("<TextDocumentEditorModal />", () => {
     });
     expect(onCancel).not.toHaveBeenCalled();
   });
+
+  it("submits when edit-mode filename changes even if content is unchanged", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TextDocumentEditorModal
+        open
+        mode="edit"
+        initialName="高德地图.md"
+        initialFormat="md"
+        initialContent={"same body"}
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const nameInput = screen.getByPlaceholderText(
+      "knowledgeBases.filenamePlaceholder",
+    );
+    await user.clear(nameInput);
+    await user.type(nameInput, "腾讯地图.md");
+
+    await user.click(screen.getByRole("button", { name: "common.save" }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "腾讯地图.md",
+      format: "md",
+      content: "same body",
+    });
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

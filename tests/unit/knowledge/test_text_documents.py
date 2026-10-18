@@ -167,3 +167,83 @@ def test_image_upload_requires_ocr(
         content=b"image",
     )
     assert created.content_type == "image/png"
+
+
+def test_update_text_document_rename(
+    services: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "octop.infra.knowledge.service.assert_knowledge_usable",
+        lambda *_a, **_k: None,
+    )
+    svc = KnowledgeService(services)
+    base = svc.create_base(owner_user_id=services.owner_id, name="Docs")
+    created = svc.create_text_document(
+        base.id,
+        actor_user_id=services.owner_id,
+        name="notes",
+        format="md",
+        content="# Hello\n",
+    )
+    assert created.filename == "notes.md"
+    old_path = document_path(base.id, created.id, created.filename)
+    assert old_path.exists()
+
+    # Rename with extension automatically appended if omitted
+    updated = svc.update_text_document(
+        base.id,
+        created.id,
+        actor_user_id=services.owner_id,
+        content="# Renamed Hello\n",
+        name="renamed_notes",
+    )
+    assert updated.filename == "renamed_notes.md"
+    assert updated.status == "pending"
+    new_path = document_path(base.id, created.id, updated.filename)
+    assert new_path.exists()
+    assert new_path.read_text(encoding="utf-8") == "# Renamed Hello\n"
+
+    # Rename with full extension specified
+    updated2 = svc.update_text_document(
+        base.id,
+        created.id,
+        actor_user_id=services.owner_id,
+        content="# Final Hello\n",
+        name="final_notes.md",
+    )
+    assert updated2.filename == "final_notes.md"
+    final_path = document_path(base.id, created.id, updated2.filename)
+    assert final_path.exists()
+    assert final_path.read_text(encoding="utf-8") == "# Final Hello\n"
+
+
+def test_rename_document_preserves_suffix_and_relocates_file(
+    services: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "octop.infra.knowledge.service.assert_knowledge_usable",
+        lambda *_a, **_k: None,
+    )
+    svc = KnowledgeService(services)
+    base = svc.create_base(owner_user_id=services.owner_id, name="Docs")
+    created = svc.create_text_document(
+        base.id,
+        actor_user_id=services.owner_id,
+        name="intro",
+        format="md",
+        content="welcome\n",
+    )
+    assert created.filename == "intro.md"
+    orig_path = document_path(base.id, created.id, created.filename)
+    assert orig_path.exists()
+
+    renamed = svc.rename_document(
+        base.id,
+        created.id,
+        new_name="overview",
+        actor_user_id=services.owner_id,
+    )
+    assert renamed.filename == "overview.md"
+    new_path = document_path(base.id, created.id, renamed.filename)
+    assert new_path.exists()
+    assert new_path.read_text(encoding="utf-8") == "welcome\n"

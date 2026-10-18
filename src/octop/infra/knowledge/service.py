@@ -291,9 +291,10 @@ class KnowledgeService:
         *,
         actor_user_id: int,
         content: str,
+        name: str | None = None,
         is_admin: bool = False,
     ) -> KnowledgeDocumentRow:
-        """Overwrite md/txt content and mark the document pending for reindex."""
+        """Overwrite md/txt content and optionally rename document, marking pending for reindex."""
         assert_knowledge_usable(
             self._services.settings_repo.get, getattr(self._services, "provider_repo", None)
         )
@@ -305,6 +306,24 @@ class KnowledgeService:
             raise LookupError("knowledge document not found")
         if document.content_type not in _TEXT_CONTENT_TYPES:
             raise ValueError("unsupported knowledge document content type: not editable text")
+        if name is not None:
+            cleaned_name = name.strip()
+            if not cleaned_name or "/" in cleaned_name or "\\" in cleaned_name:
+                raise ValueError("invalid knowledge document filename")
+            ext = Path(document.filename).suffix.lower()
+            if ext in {".md", ".txt"}:
+                if Path(cleaned_name).suffix.lower() not in {".md", ".txt"}:
+                    cleaned_name = f"{cleaned_name}{ext}"
+                elif Path(cleaned_name).suffix.lower() != ext:
+                    cleaned_name = f"{Path(cleaned_name).stem}{ext}"
+            if cleaned_name != document.filename:
+                document = self.rename_document(
+                    kb_id,
+                    doc_id,
+                    new_name=cleaned_name,
+                    actor_user_id=actor_user_id,
+                    is_admin=is_admin,
+                )
         encoded = content.encode("utf-8")
         limit = self._max_document_bytes()
         if len(encoded) > limit:
@@ -441,6 +460,10 @@ class KnowledgeService:
         cleaned = (new_name or "").strip()
         if not cleaned or "/" in cleaned or "\\" in cleaned:
             raise ValueError("invalid knowledge document name")
+        if not document.is_dir:
+            orig_suffix = Path(document.filename).suffix
+            if orig_suffix and not Path(cleaned).suffix:
+                cleaned = f"{cleaned}{orig_suffix}"
         new_path = normalize_kb_path(f"{path_parent(document.path)}/{cleaned}")
         if new_path == document.path:
             return cast(KnowledgeDocumentRow, document)
@@ -449,6 +472,11 @@ class KnowledgeService:
         result = self._repo.rename_document(kb_id, doc_id, cleaned)
         if result is None:
             raise LookupError("knowledge document not found")
+        if not document.is_dir:
+            old_file = document_path(kb_id, doc_id, document.filename)
+            new_file = document_path(kb_id, doc_id, cleaned)
+            if old_file != new_file and old_file.exists():
+                old_file.rename(new_file)
         return cast(KnowledgeDocumentRow, result)
 
     def delete_base(self, kb_id: str, *, actor_user_id: int, is_admin: bool = False) -> None:
