@@ -119,9 +119,9 @@ def test_fetch_pypi_info_loads_prerelease_description(
     def fake_urlopen(req: object, timeout: int = 10) -> _JsonResp:
         url = getattr(req, "full_url", "")
         urls.append(url)
-        if url.endswith("/octop/json"):
+        if url.endswith("/ztestoctop/json"):
             return _JsonResp(catalog)
-        if url.endswith("/octop/1.0.2b5/json"):
+        if url.endswith("/ztestoctop/1.0.2b5/json"):
             return _JsonResp(beta)
         raise AssertionError(url)
 
@@ -132,7 +132,7 @@ def test_fetch_pypi_info_loads_prerelease_description(
     assert info.latest_stable == "1.0.1"
     assert info.description is not None
     assert "remote bridge" in info.description
-    assert any(url.endswith("/octop/1.0.2b5/json") for url in urls)
+    assert any(url.endswith("/ztestoctop/1.0.2b5/json") for url in urls)
 
 
 def test_fetch_pypi_info_skips_versioned_fetch_when_stable_is_latest(
@@ -147,7 +147,7 @@ def test_fetch_pypi_info_skips_versioned_fetch_when_stable_is_latest(
     def fake_urlopen(req: object, timeout: int = 10) -> _JsonResp:
         url = getattr(req, "full_url", "")
         urls.append(url)
-        if url.endswith("/octop/json"):
+        if url.endswith("/ztestoctop/json"):
             return _JsonResp(catalog)
         raise AssertionError(url)
 
@@ -157,7 +157,7 @@ def test_fetch_pypi_info_skips_versioned_fetch_when_stable_is_latest(
     assert info.version == "1.0.1"
     assert info.description is not None
     assert "stable" in info.description
-    assert urls == ["https://pypi.org/pypi/octop/json"]
+    assert urls == ["https://pypi.org/pypi/ztestoctop/json"]
 
 
 def test_build_upgrade_command_prerelease_flags(
@@ -305,11 +305,11 @@ def test_run_upgrade_restores_launcher_only_on_failure(
 
 
 def test_page_has_package_version_matches_wheel_and_sdist() -> None:
-    body = '<a href="octop-1.0.1-py3-none-any.whl">octop-1.0.1-py3-none-any.whl</a>'
+    body = '<a href="ztestoctop-1.0.1-py3-none-any.whl">ztestoctop-1.0.1-py3-none-any.whl</a>'
     assert page_has_package_version(body, "1.0.1")
     assert not page_has_package_version(body, "1.0.10")
     assert page_has_package_version(
-        '<a href="octop-1.0.2.tar.gz">octop-1.0.2.tar.gz</a>',
+        '<a href="ztestoctop-1.0.2.tar.gz">ztestoctop-1.0.2.tar.gz</a>',
         "1.0.2",
     )
     assert page_has_package_version("any non-empty body", None)

@@ -93,7 +93,7 @@ def test_build_upgrade_command_uses_managed_venv_python() -> None:
     assert "--python" in cmd
     assert python in cmd
     assert "--upgrade-package" in cmd
-    assert "octop" in cmd
+    assert "ztestoctop" in cmd
     assert "https://mirror.example/simple" in cmd
     assert "--target" not in cmd
 

@@ -112,9 +112,12 @@ func portableVersion(root string) string {
 }
 
 func installedPackageVersion(root string) string {
-	matches, _ := filepath.Glob(filepath.Join(root, "packages", "octop-*.dist-info", "METADATA"))
+	matches, _ := filepath.Glob(filepath.Join(root, "packages", "*-*.dist-info", "METADATA"))
 	version := ""
 	for _, metadata := range matches {
+		if !isOctopDistInfo(filepath.ToSlash(metadata)) {
+			continue
+		}
 		data, err := os.ReadFile(metadata)
 		if err != nil {
 			continue
@@ -128,6 +131,24 @@ func installedPackageVersion(root string) string {
 		}
 	}
 	return version
+}
+
+// isOctopDistInfo reports whether a dist-info METADATA path belongs to this
+// app's own distribution. The wheel is named after pyproject.toml's
+// ``name`` (which may be a renamed fork), so match by the recorded
+// ``Name`` metadata rather than by directory prefix alone.
+func isOctopDistInfo(path string) bool {
+	if !strings.HasSuffix(path, ".dist-info/METADATA") {
+		return false
+	}
+	dir := path[:len(path)-len("/METADATA")]
+	base := dir[strings.LastIndex(dir, "/")+1:]
+	base = strings.TrimSuffix(base, ".dist-info")
+	// "ztestoctop-10.0.0" / "octop-1.0.2b5" → name before the last "-<version>".
+	if idx := strings.LastIndex(base, "-"); idx > 0 {
+		base = base[:idx]
+	}
+	return base == "octop" || base == "ztestoctop"
 }
 
 func bundledPortableVersion() (string, error) {
@@ -161,8 +182,7 @@ func versionFromZip(files []*zip.File) (string, error) {
 		return fromFile, nil
 	}
 	return zipEntryVersion(files, func(name string) bool {
-		rel := filepath.ToSlash(name)
-		return strings.Contains(rel, "/octop-") && strings.HasSuffix(rel, ".dist-info/METADATA")
+		return isOctopDistInfo(filepath.ToSlash(name))
 	}, metadataVersion)
 }
 

@@ -11,7 +11,7 @@ def version() -> None:
     try:
         from importlib.metadata import version as _v
 
-        v = _v("octop")
+        v = _v("ztestoctop")
     except Exception:
         v = "unknown"
     click.echo(f"octop v{v}")
