@@ -28,7 +28,14 @@ from octop.infra.utils.paths import PathLayout
 
 logger = logging.getLogger(__name__)
 
-_PACKAGE_NAME = "octop"
+#: Distribution name on the package index — what ``pip install`` / PyPI resolve.
+#: Kept separate from :data:`_SCRIPT_BASENAME` so a repackaged distribution can
+#: keep the original console-script name.
+_PACKAGE_NAME = "ztestoctop"
+#: Console-script basename, matching ``[project.scripts]`` in ``pyproject.toml``.
+#: Windows upgrade stashing must glob the *installed* launcher (``octop.exe``),
+#: which does not follow :data:`_PACKAGE_NAME`.
+_SCRIPT_BASENAME = "octop"
 _PYPI_URL = f"https://pypi.org/pypi/{_PACKAGE_NAME}/json"
 _PYPI_SIMPLE = "https://pypi.org/simple"
 _PYPI_UA = {"User-Agent": f"{_PACKAGE_NAME}-updater/1.0"}
@@ -536,7 +543,7 @@ def stash_console_scripts(python_exe: str) -> list[tuple[Path, Path]]:
     script_dir = Path(python_exe).parent
     _purge_stale_stashes(script_dir)
     moved: list[tuple[Path, Path]] = []
-    for script in sorted(script_dir.glob(f"{_PACKAGE_NAME}*.exe")):
+    for script in sorted(script_dir.glob(f"{_SCRIPT_BASENAME}*.exe")):
         stash = script.with_name(script.name + _STASH_SUFFIX)
         try:
             script.replace(stash)

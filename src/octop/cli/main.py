@@ -42,7 +42,7 @@ def _get_version() -> str:
     try:
         from importlib.metadata import version as pkg_version
 
-        return pkg_version("octop")
+        return pkg_version("ztestoctop")
     except Exception:
         return "unknown"
 

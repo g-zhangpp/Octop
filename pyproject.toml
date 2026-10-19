@@ -3,8 +3,8 @@ requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
 [project]
-name = "octop"
-version = "1.0.2"
+name = "ztestoctop"
+version = "10.0.0"
 description = "Smarter self-hosted AI assistant for multiple users and agents, built on octop-harness"
 readme = "README.md"
 license = { text = "MIT" }
@@ -114,6 +114,20 @@ include = [
     "src/octop/infra/agents/subagents/library/**/*",
     "src/octop/infra/agents/subagents/divisions.json",
     "src/octop/infra/desktop/scripts/**/*",
+]
+# Excluded from the wheel: third-party material that is NOT covered by this
+# project's MIT license.
+#   - bot_creators/: file headers assert "Copyright (C) 2025 Tencent. All rights
+#     reserved." and prohibit distribution, contradicting the MIT LICENSE.
+#   - office-automation skills: © Anthropic, PBC, governed by Anthropic's
+#     Consumer/Commercial Terms, not an open-source license.
+exclude = [
+    "src/octop/infra/gateway/bot_creators/feishu_bot_creator.py",
+    "src/octop/infra/gateway/bot_creators/yuanbao_bot_creator.py",
+    "src/octop/infra/agents/experts/library/office-automation/skills/docx/**",
+    "src/octop/infra/agents/experts/library/office-automation/skills/pdf/**",
+    "src/octop/infra/agents/experts/library/office-automation/skills/pptx/**",
+    "src/octop/infra/agents/experts/library/office-automation/skills/xlsx/**",
 ]
 artifacts = [
     "src/octop/dashboard/**/*",

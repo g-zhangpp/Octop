@@ -167,12 +167,12 @@ def test_build_upgrade_command_prerelease_flags(
     uv_cmd = build_upgrade_command("uv", python, allow_prerelease=True, version="0.9.34b1")
     assert uv_cmd is not None
     assert uv_cmd[uv_cmd.index("--prerelease") + 1] == "allow"
-    assert "octop==0.9.34b1" in uv_cmd
+    assert "ztestoctop==0.9.34b1" in uv_cmd
     monkeypatch.setattr("octop.infra.setup.self_update.has_pip", lambda _: True)
     pip_cmd = build_upgrade_command("pip", python, allow_prerelease=True, version="0.9.34b1")
     assert pip_cmd is not None
     assert "--pre" in pip_cmd
-    assert "octop==0.9.34b1" in pip_cmd
+    assert "ztestoctop==0.9.34b1" in pip_cmd
 
 
 def test_portable_upgrade_prefers_bundled_uv(
@@ -213,12 +213,12 @@ def test_build_upgrade_command_pins_stable_without_pre(
     python = "/home/user/.octop/venv/bin/python"
     uv_cmd = build_upgrade_command("uv", python, version="0.9.33")
     assert uv_cmd is not None
-    assert "octop==0.9.33" in uv_cmd
+    assert "ztestoctop==0.9.33" in uv_cmd
     assert "--prerelease" not in uv_cmd
     monkeypatch.setattr("octop.infra.setup.self_update.has_pip", lambda _: True)
     pip_cmd = build_upgrade_command("pip", python, version="0.9.33")
     assert pip_cmd is not None
-    assert "octop==0.9.33" in pip_cmd
+    assert "ztestoctop==0.9.33" in pip_cmd
     assert "--pre" not in pip_cmd
 
 
@@ -466,9 +466,9 @@ def test_get_version_in_dir_does_not_use_other_installs(tmp_path: Path, has_meta
     from octop.infra.setup import self_update
 
     if has_metadata:
-        metadata = tmp_path / "octop-1.0.2b4.dist-info" / "METADATA"
+        metadata = tmp_path / "ztestoctop-1.0.2b4.dist-info" / "METADATA"
         metadata.parent.mkdir()
-        metadata.write_text("Name: octop\nVersion: 1.0.2b4\n", encoding="utf-8")
+        metadata.write_text("Name: ztestoctop\nVersion: 1.0.2b4\n", encoding="utf-8")
 
     assert self_update.get_version_in_dir(sys.executable, str(tmp_path)) is None
 
@@ -502,7 +502,7 @@ def test_target_versions_load_package_despite_stale_metadata(
 def _write_octop_metadata(target: Path, version: str) -> None:
     metadata = target / f"octop-{version}.dist-info" / "METADATA"
     metadata.parent.mkdir(parents=True)
-    metadata.write_text(f"Name: octop\nVersion: {version}\n", encoding="utf-8")
+    metadata.write_text(f"Name: ztestoctop\nVersion: {version}\n", encoding="utf-8")
 
 
 def _write_octop_package(target: Path, version: str) -> None:
@@ -518,10 +518,11 @@ def _write_octop_package(target: Path, version: str) -> None:
 
 
 def _write_upgrade_wheel(directory: Path, metadata: str | None = None) -> Path:
-    wheel = directory / "octop-1.0.2b5-py3-none-any.whl"
+    wheel = directory / "ztestoctop-1.0.2b5-py3-none-any.whl"
     with zipfile.ZipFile(wheel, "w") as archive:
         archive.writestr(
-            "octop-1.0.2b5.dist-info/METADATA", metadata or "Name: octop\nVersion: 1.0.2b5\n"
+            "ztestoctop-1.0.2b5.dist-info/METADATA",
+            metadata or "Name: ztestoctop\nVersion: 1.0.2b5\n",
         )
     return wheel
 
@@ -639,7 +640,7 @@ def test_application_only_checks_target_dependency_closure(
         requirement = "absent>=1; python_version < '0'"
     elif scenario == "direct-url":
         requirement = "upgrade-dep @ https://example.com/dep.whl"
-    release = f"Name: octop\nVersion: 1.0.2b5\nRequires-Dist: {requirement}\n"
+    release = f"Name: ztestoctop\nVersion: 1.0.2b5\nRequires-Dist: {requirement}\n"
     metadata("octop", "1.0.2b4", ["old-absent-dep>=1"])
     if scenario != "missing":
         metadata(
@@ -667,10 +668,10 @@ def test_application_only_checks_target_dependency_closure(
     "metadata",
     [
         "Name: other\nVersion: 1.0.2b5\n",
-        "Name: octop\nVersion: 1.0.2b6\n",
-        "Name: octop\nVersion: broken\n",
-        "Name: octop\n",
-        "Name: octop\nVersion: 1.0.2b5\nVersion: 1.0.2b4\n",
+        "Name: ztestoctop\nVersion: 1.0.2b6\n",
+        "Name: ztestoctop\nVersion: broken\n",
+        "Name: ztestoctop\n",
+        "Name: ztestoctop\nVersion: 1.0.2b5\nVersion: 1.0.2b4\n",
     ],
 )
 def test_preflight_rejects_wrong_or_ambiguous_release(tmp_path: Path, metadata: str) -> None:
@@ -692,7 +693,7 @@ def test_preflight_rejects_unreadable_wheel(tmp_path: Path, broken: str) -> None
             pass
     else:
         with zipfile.ZipFile(wheel, "a") as archive:
-            archive.writestr("other.dist-info/METADATA", "Name: octop\nVersion: 1.0.2b5\n")
+            archive.writestr("other.dist-info/METADATA", "Name: ztestoctop\nVersion: 1.0.2b5\n")
     assert not self_update._target_dependencies_satisfied(tmp_path, wheel)
 
 
@@ -726,7 +727,7 @@ def test_legacy_pip_fast_path_falls_back_and_verifies_full_install(
             calls.append(("download", timeout))
             directory = Path(cmd[cmd.index("--dest") + 1])
             downloads.append(directory)
-            release = "Name: octop\nVersion: 1.0.2b5\n"
+            release = "Name: ztestoctop\nVersion: 1.0.2b5\n"
             if failure == "dependency":
                 release += "Requires-Dist: missing-upgrade-dependency>=1\n"
             _write_upgrade_wheel(directory, release)
@@ -826,9 +827,9 @@ def test_verify_green_upgrade_reads_only_target(
     assert not unchanged.success
     assert unchanged.installed_version == "1.0.2b4"
 
-    metadata = tmp_path / "octop-1.0.2b5.dist-info" / "METADATA"
+    metadata = tmp_path / "ztestoctop-1.0.2b5.dist-info" / "METADATA"
     metadata.parent.mkdir()
-    metadata.write_text("Name: octop\nVersion: 1.0.2b5\n", encoding="utf-8")
+    metadata.write_text("Name: ztestoctop\nVersion: 1.0.2b5\n", encoding="utf-8")
     _write_octop_package(tmp_path, "1.0.2b5")
     installed = self_update._verify_upgrade("1.0.2b4", sys.executable, [], version="1.0.2b5")
     assert installed.success
@@ -862,7 +863,7 @@ def test_pip_target_upgrade_with_stale_metadata_succeeds_without_retry(
         if "download" in cmd:
             assert kwargs["timeout"] == 90
             assert "--no-deps" in cmd and "--only-binary=:all:" in cmd
-            assert "--pre" in cmd and cmd[-1] == "octop==1.0.2b5"
+            assert "--pre" in cmd and cmd[-1] == "ztestoctop==1.0.2b5"
             assert self_update.get_local_version() == "1.0.2b4"
             directory = Path(cmd[cmd.index("--dest") + 1])
             downloads.append(directory)
@@ -873,7 +874,7 @@ def test_pip_target_upgrade_with_stale_metadata_succeeds_without_retry(
         assert cmd[:4] == [sys.executable, "-m", "pip", "install"]
         assert cmd[cmd.index("--target") + 1] == str(tmp_path)
         assert "--no-index" in cmd and "--no-deps" in cmd
-        assert Path(cmd[-1]) == downloads[0] / "octop-1.0.2b5-py3-none-any.whl"
+        assert Path(cmd[-1]) == downloads[0] / "ztestoctop-1.0.2b5-py3-none-any.whl"
         calls.append(label)
         _write_octop_metadata(tmp_path, "1.0.2b5")
         _write_octop_package(tmp_path, "1.0.2b5")
@@ -955,7 +956,7 @@ def test_legacy_pip_fallback_window_is_shared_across_mirrors(
             elapsed += 80
             _write_upgrade_wheel(
                 Path(cmd[cmd.index("--dest") + 1]),
-                "Name: octop\nVersion: 1.0.2b5\nRequires-Dist: missing-upgrade-dependency>=1\n",
+                "Name: ztestoctop\nVersion: 1.0.2b5\nRequires-Dist: missing-upgrade-dependency>=1\n",
             )
             return 0, ""
         assert "--no-deps" not in cmd
@@ -1157,7 +1158,7 @@ def test_cold_target_install_budget_preserves_regular_timeout(
         if "download" in cmd:
             _write_upgrade_wheel(
                 Path(cmd[cmd.index("--dest") + 1]),
-                "Name: octop\nVersion: 1.0.2b5\nRequires-Dist: absent>=1\n",
+                "Name: ztestoctop\nVersion: 1.0.2b5\nRequires-Dist: absent>=1\n",
             )
         return (
             (0, "")

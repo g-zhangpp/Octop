@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _server_version() -> str:
     try:
-        return version("octop")
+        return version("ztestoctop")
     except PackageNotFoundError:
         return "0.0.0"
 

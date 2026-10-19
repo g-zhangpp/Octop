@@ -102,7 +102,7 @@ def test_build_upgrade_command_pins_version() -> None:
     python = "/home/user/.octop/venv/bin/python"
     cmd = self_update.build_upgrade_command("uv", python, version="0.9.33")
     assert cmd is not None
-    assert "octop==0.9.33" in cmd
+    assert "ztestoctop==0.9.33" in cmd
     assert "--prerelease" not in cmd
 
 
