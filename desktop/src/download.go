@@ -144,7 +144,7 @@ func isOctopDistInfo(path string) bool {
 	dir := path[:len(path)-len("/METADATA")]
 	base := dir[strings.LastIndex(dir, "/")+1:]
 	base = strings.TrimSuffix(base, ".dist-info")
-	// "ztestoctop-10.0.0" / "octop-1.0.2b5" → name before the last "-<version>".
+	// "ztestoctop-10.0.1" / "octop-1.0.2b5" → name before the last "-<version>".
 	if idx := strings.LastIndex(base, "-"); idx > 0 {
 		base = base[:idx]
 	}

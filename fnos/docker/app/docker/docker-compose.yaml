@@ -1,6 +1,6 @@
 services:
   octop:
-    image: ghcr.io/tencentcloud/octop:10.0.0
+    image: ghcr.io/tencentcloud/octop:10.0.1
     container_name: octop
     restart: unless-stopped
     ulimits:
