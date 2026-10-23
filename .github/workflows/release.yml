@@ -63,6 +63,28 @@ jobs:
           name: dist
           path: dist/
 
+  publish-private:
+    name: Publish to private index
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ vars.PRIVATE_INDEX_ENABLED == 'true' }}
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Upload to pypiserver
+        env:
+          TWINE_USERNAME: ${{ secrets.PRIVATE_INDEX_USER }}
+          TWINE_PASSWORD: ${{ secrets.PRIVATE_INDEX_PASSWORD }}
+        run: |
+          uv tool install twine
+          twine upload --repository-url "${{ vars.PRIVATE_INDEX_URL }}" dist/*
+
   publish:
     name: Publish to PyPI
     needs: build
